@@ -1,9 +1,30 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 const APP_STORE_URL = "https://apps.apple.com/";
 const PLAY_STORE_URL = "https://play.google.com/store/apps";
 const SUPPORT_EMAIL = "support@mawahib.io";
+
+const NAV_LINKS = [
+  { id: "product", label: "Product", short: "Product" },
+  { id: "audiences", label: "Who it’s for", short: "Who" },
+  { id: "how", label: "How it works", short: "How" },
+  { id: "contact", label: "Contact", short: "Contact" },
+];
+
+const SECTION_IDS = NAV_LINKS.map((link) => link.id);
+
+/** Mobile/tablet pink glow anchors by section (percentages). */
+const GLOW_BY_SECTION = {
+  hero: { x: 50, y: 44 },
+  product: { x: 14, y: 16 },
+  audiences: { x: 86, y: 16 },
+  how: { x: 86, y: 82 },
+  contact: { x: 14, y: 82 },
+  download: { x: 50, y: 50 },
+};
+
+const GLOW_PANEL_IDS = Object.keys(GLOW_BY_SECTION);
 
 function useReveal() {
   const ref = useRef(null);
@@ -71,13 +92,15 @@ function scrollToSection(id) {
   target.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function handleSectionNav(event, id) {
+function handleSectionNav(event, id, onDone) {
   event.preventDefault();
   scrollToSection(id);
+  onDone?.();
 }
 
 function App() {
   const pageRef = useReveal();
+  const [activeSection, setActiveSection] = useState("");
 
   useEffect(() => {
     if (window.location.hash) {
@@ -86,42 +109,199 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    const sections = SECTION_IDS.map((id) => document.getElementById(id)).filter(
+      Boolean
+    );
+    if (!sections.length) return;
+
+    const ratios = new Map();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          ratios.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+        });
+
+        let bestId = "";
+        let bestRatio = 0;
+        ratios.forEach((ratio, id) => {
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
+            bestId = id;
+          }
+        });
+
+        setActiveSection(bestRatio > 0.2 ? bestId : "");
+      },
+      {
+        threshold: [0.2, 0.35, 0.5, 0.65, 0.8],
+        rootMargin: "-18% 0px -35% 0px",
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const download = document.getElementById("download");
+    const nav = document.querySelector(".nav");
+    if (!download || !nav) return;
+
+    const desktopQuery = window.matchMedia("(min-width: 800px)");
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const onDark = desktopQuery.matches && entry.isIntersecting && entry.intersectionRatio > 0.35;
+        nav.classList.toggle("nav-on-dark", onDark);
+      },
+      { threshold: [0.2, 0.35, 0.5, 0.7] }
+    );
+
+    const onChange = () => {
+      if (!desktopQuery.matches) nav.classList.remove("nav-on-dark");
+    };
+
+    observer.observe(download);
+    desktopQuery.addEventListener("change", onChange);
+    return () => {
+      observer.disconnect();
+      desktopQuery.removeEventListener("change", onChange);
+      nav.classList.remove("nav-on-dark");
+    };
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const phoneQuery = window.matchMedia("(max-width: 799px)");
+    const ratios = new Map();
+
+    const clearGlow = () => {
+      ["--glow-x", "--glow-y", "--glow-x2", "--glow-y2", "--glow-x3", "--glow-y3"].forEach(
+        (prop) => root.style.removeProperty(prop)
+      );
+      document.querySelector(".ambient")?.removeAttribute("data-section");
+    };
+
+    const setGlow = (sectionId) => {
+      if (!phoneQuery.matches) {
+        clearGlow();
+        return;
+      }
+
+      const pos = GLOW_BY_SECTION[sectionId] || GLOW_BY_SECTION.hero;
+      root.style.setProperty("--glow-x", `${pos.x}%`);
+      root.style.setProperty("--glow-y", `${pos.y}%`);
+      root.style.setProperty("--glow-x2", `${Math.min(96, Math.max(4, pos.x + 10))}%`);
+      root.style.setProperty("--glow-y2", `${Math.min(96, Math.max(4, pos.y - 8))}%`);
+      root.style.setProperty("--glow-x3", `${Math.min(96, Math.max(4, pos.x - 8))}%`);
+      root.style.setProperty("--glow-y3", `${Math.min(96, Math.max(4, pos.y + 10))}%`);
+      document.querySelector(".ambient")?.setAttribute("data-section", sectionId);
+    };
+
+    const panels = GLOW_PANEL_IDS.map((id) => {
+      const el =
+        id === "hero" ? document.querySelector(".hero") : document.getElementById(id);
+      return el ? { id, el } : null;
+    }).filter(Boolean);
+
+    if (!panels.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const panel = panels.find((item) => item.el === entry.target);
+          if (!panel) return;
+          ratios.set(panel.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+        });
+
+        let bestId = "hero";
+        let bestRatio = 0;
+        ratios.forEach((ratio, id) => {
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
+            bestId = id;
+          }
+        });
+
+        if (bestRatio > 0.15) setGlow(bestId);
+      },
+      {
+        threshold: [0.2, 0.4, 0.55, 0.7],
+        rootMargin: "-10% 0px -10% 0px",
+      }
+    );
+
+    panels.forEach(({ el }) => observer.observe(el));
+    setGlow("hero");
+
+    const onChange = () => {
+      if (!phoneQuery.matches) clearGlow();
+      else setGlow("hero");
+    };
+
+    phoneQuery.addEventListener("change", onChange);
+    return () => {
+      observer.disconnect();
+      phoneQuery.removeEventListener("change", onChange);
+      clearGlow();
+    };
+  }, []);
+
   return (
     <div className="page" ref={pageRef}>
+      <div className="ambient" aria-hidden="true">
+        <div className="ambient-mesh" />
+        <div className="ambient-blob ambient-blob-a" />
+        <div className="ambient-blob ambient-blob-b" />
+        <div className="ambient-blob ambient-blob-c" />
+      </div>
+
       <header className="nav">
-        <a
-          className="nav-brand"
-          href="/"
-          aria-label="Mawahib home"
-          onClick={(event) => handleSectionNav(event, "top")}
-        >
-          <img src="/assets/logo-mark.svg" alt="" className="nav-mark" />
-          <span>Mawahib</span>
-        </a>
-        <nav className="nav-links" aria-label="Primary">
-          <a href="#product" onClick={(event) => handleSectionNav(event, "product")}>
-            Product
-          </a>
+        <div className="nav-bar">
           <a
-            href="#audiences"
-            onClick={(event) => handleSectionNav(event, "audiences")}
+            className="nav-brand"
+            href="/"
+            aria-label="Mawahib home"
+            onClick={(event) => handleSectionNav(event, "top")}
           >
-            Who it’s for
+            <img src="/assets/logo-mark.svg" alt="" className="nav-mark" />
+            <span>Mawahib</span>
           </a>
-          <a href="#how" onClick={(event) => handleSectionNav(event, "how")}>
-            How it works
+          <nav className="nav-links" aria-label="Primary">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                className={activeSection === link.id ? "is-active" : ""}
+                onClick={(event) => handleSectionNav(event, link.id)}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          <a
+            className="nav-cta"
+            href="#download"
+            onClick={(event) => handleSectionNav(event, "download")}
+          >
+            Get the app
           </a>
-          <a href="#contact" onClick={(event) => handleSectionNav(event, "contact")}>
-            Contact
-          </a>
+        </div>
+
+        <nav className="nav-sections" aria-label="Sections">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.id}
+              href={`#${link.id}`}
+              className={activeSection === link.id ? "is-active" : ""}
+              onClick={(event) => handleSectionNav(event, link.id)}
+            >
+              {link.short}
+            </a>
+          ))}
         </nav>
-        <a
-          className="nav-cta"
-          href="#download"
-          onClick={(event) => handleSectionNav(event, "download")}
-        >
-          Get the app
-        </a>
       </header>
 
       <main id="top">
@@ -267,38 +447,39 @@ function App() {
         </section>
 
         <section className="section download" id="download">
-          <div className="section-inner download-inner" data-reveal>
-            <img src="/assets/emblem.svg" alt="" className="download-emblem" />
-            <h2>Get Mawahib on your phone</h2>
-            <p>
-              The app is coming soon to the App Store and Google Play. Tap below
-              to head to the stores — we’ll be there.
-            </p>
-            <StoreButtons />
+          <div className="section-inner download-panel">
+            <div className="download-inner" data-reveal>
+              <img src="/assets/emblem.svg" alt="" className="download-emblem" />
+              <h2>Get Mawahib on your phone</h2>
+              <p>
+                The app is coming soon to the App Store and Google Play. Tap below
+                to head to the stores — we’ll be there.
+              </p>
+              <StoreButtons />
+            </div>
           </div>
+          <footer className="download-footer">
+            <div className="footer-meta">
+              <div className="footer-brand">
+                <img src="/assets/logo-mark.svg" alt="" />
+                <span>Mawahib</span>
+              </div>
+              <p className="footer-copy">
+                © {new Date().getFullYear()} Mawahib. Where Talent Meets Hard Work.
+              </p>
+            </div>
+            <div className="footer-links">
+              <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                App Store
+              </a>
+              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+                Google Play
+              </a>
+            </div>
+          </footer>
         </section>
       </main>
-
-      <footer className="footer">
-        <div className="footer-inner">
-          <div className="footer-brand">
-            <img src="/assets/logo-mark.svg" alt="" />
-            <span>Mawahib</span>
-          </div>
-          <div className="footer-links">
-            <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
-            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
-              App Store
-            </a>
-            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
-              Google Play
-            </a>
-          </div>
-          <p className="footer-copy">
-            © {new Date().getFullYear()} Mawahib. Where Talent Meets Hard Work.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
