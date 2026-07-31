@@ -65,22 +65,61 @@ function StoreButtons({ className = "" }) {
   );
 }
 
+function scrollToSection(id) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function handleSectionNav(event, id) {
+  event.preventDefault();
+  scrollToSection(id);
+}
+
 function App() {
   const pageRef = useReveal();
+
+  useEffect(() => {
+    if (window.location.hash) {
+      const { pathname, search } = window.location;
+      window.history.replaceState(null, "", `${pathname}${search}`);
+    }
+  }, []);
+
   return (
     <div className="page" ref={pageRef}>
       <header className="nav">
-        <a className="nav-brand" href="#top" aria-label="Mawahib home">
+        <a
+          className="nav-brand"
+          href="/"
+          aria-label="Mawahib home"
+          onClick={(event) => handleSectionNav(event, "top")}
+        >
           <img src="/assets/logo-mark.svg" alt="" className="nav-mark" />
           <span>Mawahib</span>
         </a>
         <nav className="nav-links" aria-label="Primary">
-          <a href="#product">Product</a>
-          <a href="#audiences">Who it’s for</a>
-          <a href="#how">How it works</a>
-          <a href="#contact">Contact</a>
+          <a href="#product" onClick={(event) => handleSectionNav(event, "product")}>
+            Product
+          </a>
+          <a
+            href="#audiences"
+            onClick={(event) => handleSectionNav(event, "audiences")}
+          >
+            Who it’s for
+          </a>
+          <a href="#how" onClick={(event) => handleSectionNav(event, "how")}>
+            How it works
+          </a>
+          <a href="#contact" onClick={(event) => handleSectionNav(event, "contact")}>
+            Contact
+          </a>
         </nav>
-        <a className="nav-cta" href="#download">
+        <a
+          className="nav-cta"
+          href="#download"
+          onClick={(event) => handleSectionNav(event, "download")}
+        >
           Get the app
         </a>
       </header>
