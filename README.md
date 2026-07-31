@@ -1,6 +1,6 @@
 # Mawahib.io
 
-A "coming soon" landing page for [Mawahib](https://mawahib.app).
+Marketing site for [Mawahib](https://mawahib.app) — the creative talent marketplace for the MENA region.
 
 ## Tech Stack
 
@@ -9,6 +9,8 @@ A "coming soon" landing page for [Mawahib](https://mawahib.app).
 - Deployed via GitHub Pages
 
 ## Development
+
+Requires Node 20+.
 
 ```bash
 # Install dependencies
