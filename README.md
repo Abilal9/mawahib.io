@@ -28,10 +28,9 @@ npm run preview
 
 ## Deployment
 
-The site is deployed to GitHub Pages at [mawahib.io](https://mawahib.io).
+The site deploys to GitHub Pages at [mawahib.io](https://mawahib.io) via GitHub Actions (same setup as nonchalantqueen.com).
 
-```bash
-npm run deploy
-```
+- **Automatic:** every push to `main`
+- **Manual:** GitHub → Actions → **Deploy to GitHub Pages** → **Run workflow**
 
-This builds the project and pushes to the `gh-pages` branch.
+In the repo settings, set Pages source to **GitHub Actions** (Settings → Pages → Build and deployment → Source).
