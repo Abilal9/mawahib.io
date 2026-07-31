@@ -146,25 +146,27 @@ function App() {
         </section>
 
         <section className="section audiences" id="audiences">
-          <div className="section-inner audiences-grid">
-            <article data-reveal>
-              <p className="eyebrow">For talent</p>
-              <h2>Get discovered. Stay booked.</h2>
-              <p>
-                Share your work, list your services, and match with jobs that fit
-                your skills — from events and studios to brands looking for local
-                creatives.
-              </p>
-            </article>
-            <article data-reveal>
-              <p className="eyebrow">For businesses</p>
-              <h2>Find the right creative, faster.</h2>
-              <p>
-                Post roles, explore portfolios, and hire verified talent for
-                productions, events, and campaigns — without relying only on
-                agencies or referrals.
-              </p>
-            </article>
+          <div className="section-inner">
+            <div className="audiences-grid">
+              <article data-reveal>
+                <p className="eyebrow">For talent</p>
+                <h2>Get discovered. Stay booked.</h2>
+                <p>
+                  Share your work, list your services, and match with jobs that
+                  fit your skills — from events and studios to brands looking for
+                  local creatives.
+                </p>
+              </article>
+              <article data-reveal>
+                <p className="eyebrow">For businesses</p>
+                <h2>Find the right creative, faster.</h2>
+                <p>
+                  Post roles, explore portfolios, and hire verified talent for
+                  productions, events, and campaigns — without relying only on
+                  agencies or referrals.
+                </p>
+              </article>
+            </div>
           </div>
         </section>
 
